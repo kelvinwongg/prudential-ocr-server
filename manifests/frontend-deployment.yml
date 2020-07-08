@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: prudential-ocr
+  labels:
+    app: prudential-ocr
+spec:
+  ports:
+    - port: 80
+  selector:
+    app: prudential-ocr
+    tier: frontend
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: frontend-pv-claim
+  labels:
+    app: prudential-ocr
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prudential-ocr
+  labels:
+    app: prudential-ocr
+spec:
+  selector:
+    matchLabels:
+      app: prudential-ocr
+      tier: frontend
+  replicas: 2
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: prudential-ocr
+        tier: frontend
+    spec:
+      containers:
+      - name: prudential-ocr
+        image: gcr.io/prudential-ocr/prudential-ocr-frontend:0.1
+        ports:
+        - containerPort: 80
+          name: prudential-ocr
+        volumeMounts:
+        - name: prudential-ocr-persistent-storage
+          mountPath: /usr/src/app/uploads
+      imagePullSecrets:
+        - name: myregistrykey
+      volumes:
+      - name: prudential-ocr-persistent-storage
+        persistentVolumeClaim:
+          claimName: frontend-pv-claim
